@@ -146,7 +146,7 @@ func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, state *State) {
 				continue
 			}
 			log.Println("New proposal detected:", proposal)
-			text := fmt.Sprintf("Title: %s (Topic: %s)\n%s\nhttps://dashboard.internetcomputer.org/proposal/%d",
+			text := fmt.Sprintf("*%s*\n\nTopic: %s\n%s\nhttps://dashboard.internetcomputer.org/proposal/%d",
 				proposal.Title, proposal.Topic, proposal.Summary, proposal.Id)
 
 			state.lock.Lock()
