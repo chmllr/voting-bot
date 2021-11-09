@@ -121,7 +121,7 @@ func main() {
 			state.lock.RUnlock()
 			msg = tgbotapi.NewMessage(id, text)
 		} else {
-			msg = tgbotapi.NewMessage(id, "Enter /start to subscribe to the notifications; use /stop to cancel the subscription. Use /block or /unblock to block or unblock a topic; use /blacklist to display the list of ignored topics.")
+			msg = tgbotapi.NewMessage(id, "Enter /start to subscribe to the notifications; use /stop to cancel the subscription. Use /block or /unblock to block or unblock a topic; use /blacklist to display the list of blocked topics.")
 		}
 		bot.Send(msg)
 	}
