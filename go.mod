@@ -1,4 +1,4 @@
-module telegram.bot/nns
+module chmllr.com/nns-proposals-bot
 
 go 1.17
 
