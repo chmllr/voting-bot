@@ -45,6 +45,19 @@ func (s *State) persist() {
 	log.Println(len(data), "bytes persisted to", statePath)
 }
 
+func (s *State) restore() {
+	data, err := os.ReadFile(statePath)
+	if err != nil {
+		log.Println("Couldn't read file", statePath)
+	}
+	if err := json.Unmarshal(data, &s); err != nil {
+		log.Println("Couldn't deserialize the state file", statePath, ":", err)
+	}
+	if s.ChatIds == nil {
+		s.ChatIds = map[int64]map[string]bool{}
+	}
+}
+
 func main() {
 	bot, err := tgbotapi.NewBotAPI(os.Getenv("TOKEN"))
 	if err != nil {
@@ -56,13 +69,7 @@ func main() {
 	u.Timeout = 60
 
 	var state State
-	data, err := os.ReadFile(statePath)
-	if err := json.Unmarshal(data, &state); err != nil {
-		log.Println("Couldn't deserialize the state file", statePath, ":", err)
-	}
-	if state.ChatIds == nil {
-		state.ChatIds = map[int64]map[string]bool{}
-	}
+	state.restore()
 
 	go fetchProposalsAndNotify(bot, &state)
 
@@ -97,19 +104,20 @@ func main() {
 				text = fmt.Sprintf("Please specify the topic")
 			} else {
 				state.lock.Lock()
+				topic := strings.Replace(words[1], "#", "", -1)
 				if block {
-					state.ChatIds[id][words[1]] = true
+					state.ChatIds[id][topic] = true
 				} else {
-					delete(state.ChatIds[id], words[1])
+					delete(state.ChatIds[id], topic)
 				}
-				text = fmt.Sprintf("You blocked these topics %+v", blockedTopics(state.ChatIds[id]))
+				text = fmt.Sprintf("You've blocked these topics %+v", blockedTopics(state.ChatIds[id]))
 				state.persist()
 				state.lock.Unlock()
 			}
 			msg = tgbotapi.NewMessage(id, text)
 		} else if update.Message.Text == "/blacklist" {
 			state.lock.RLock()
-			text := fmt.Sprintf("You blocked these topics %+v", blockedTopics(state.ChatIds[id]))
+			text := fmt.Sprintf("You've blocked these topics %+v", blockedTopics(state.ChatIds[id]))
 			state.lock.RUnlock()
 			msg = tgbotapi.NewMessage(id, text)
 		} else {
@@ -146,8 +154,12 @@ func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, state *State) {
 				continue
 			}
 			log.Println("New proposal detected:", proposal)
-			text := fmt.Sprintf("*%s*\n\nTopic: %s\n%s\nhttps://dashboard.internetcomputer.org/proposal/%d",
-				proposal.Title, proposal.Topic, proposal.Summary, proposal.Id)
+			summary := proposal.Summary
+			if len(summary) > 0 {
+				summary = "\n" + summary + "\n"
+			}
+			text := fmt.Sprintf("*%s*\n\n%s\n#%s\n\nhttps://dashboard.internetcomputer.org/proposal/%d",
+				proposal.Title, summary, tgbotapi.EscapeText(tgbotapi.ModeMarkdown, proposal.Topic), proposal.Id)
 
 			state.lock.Lock()
 			state.LastSeenProposal = proposal.Id
@@ -161,6 +173,8 @@ func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, state *State) {
 					continue USERS
 				}
 				msg := tgbotapi.NewMessage(id, text)
+				msg.ParseMode = tgbotapi.ModeMarkdown
+				msg.DisableWebPagePreview = true
 				bot.Send(msg)
 			}
 			log.Println("Successfully notified", len(state.ChatIds), "users")
