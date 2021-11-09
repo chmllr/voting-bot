@@ -115,14 +115,14 @@ func main() {
 				} else {
 					delete(state.ChatIds[id], topic)
 				}
-				text = fmt.Sprintf("You've blocked these topics %+v", blockedTopics(state.ChatIds[id]))
+				text = blockedTopicsMsg(state.ChatIds[id])
 				state.persist()
 				state.lock.Unlock()
 			}
 			msg = tgbotapi.NewMessage(id, text)
 		} else if userMsg == "/blacklist" {
 			state.lock.RLock()
-			text := fmt.Sprintf("You've blocked these topics %+v", blockedTopics(state.ChatIds[id]))
+			text := blockedTopicsMsg(state.ChatIds[id])
 			state.lock.RUnlock()
 			msg = tgbotapi.NewMessage(id, text)
 		} else {
@@ -194,11 +194,15 @@ func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, state *State) {
 	}
 }
 
-func blockedTopics(m map[string]bool) (res []string) {
+func blockedTopicsMsg(m map[string]bool) string {
+	if len(m) == 0 {
+		return "You did not block any topics."
+	}
+	var res []string
 	for topic, enabled := range m {
 		if enabled {
 			res = append(res, topic)
 		}
 	}
-	return
+	return fmt.Sprintf("You've blocked these topics: %s", strings.Join(res, ", "))
 }
