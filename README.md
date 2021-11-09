@@ -1,6 +1,10 @@
 NNS Proposals Bot
 =================
 
-A telegram bot (https://t.me/NNSProposalsBot), which notifies you about all new NNS proposals.
+A [telegram bot](https://t.me/NNSProposalsBot) alerting about all new NNS proposals.
+Supports filtering on the proposal topic.
+
+## Usage
 
 Enter `/start` to subscribe to the notifications; use `/stop` to cancel the subscription.
+Use `/block` or `/unblock` to block or unblock a topic; use `/blacklist` to display the list of ignored topics.
