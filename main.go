@@ -90,7 +90,7 @@ func main() {
 			if subscription {
 				state.ChatIds[id] = map[string]bool{}
 				log.Println("Added user", id, "to subscribers")
-				text = "Subscribed."
+				text = "Subscribed." + "\n\n" + getHelpMessage()
 			} else {
 				delete(state.ChatIds, id)
 				log.Println("Removed user", id, "from subscribers")
@@ -126,10 +126,16 @@ func main() {
 			state.lock.RUnlock()
 			msg = tgbotapi.NewMessage(id, text)
 		} else {
-			msg = tgbotapi.NewMessage(id, "Enter /start to subscribe to the notifications; use /stop to cancel the subscription. Use /block or /unblock to block or unblock a topic; use /blacklist to display the list of blocked topics.")
+			msg = tgbotapi.NewMessage(id, getHelpMessage())
 		}
 		bot.Send(msg)
 	}
+}
+
+func getHelpMessage() string {
+	return "Enter /stop to stop the notifications. " +
+		"Use /block or /unblock to block or unblock a topic; " +
+		"use /blacklist to display the list of blocked topics."
 }
 
 func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, state *State) {
