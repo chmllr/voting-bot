@@ -80,9 +80,10 @@ func main() {
 		}
 		var msg tgbotapi.MessageConfig
 		id := update.Message.Chat.ID
-		subscription := update.Message.Text == "/start"
-		block := strings.Contains(update.Message.Text, "/block")
-		if subscription || update.Message.Text == "/stop" {
+		userMsg := strings.ToLower(update.Message.Text)
+		subscription := userMsg == "/start"
+		block := strings.Contains(userMsg, "/block")
+		if subscription || userMsg == "/stop" {
 			var text string
 			state.lock.Lock()
 			if subscription {
@@ -97,8 +98,8 @@ func main() {
 			state.persist()
 			state.lock.Unlock()
 			msg = tgbotapi.NewMessage(id, text)
-		} else if block || strings.Contains(update.Message.Text, "/unblock") {
-			words := strings.Split(update.Message.Text, " ")
+		} else if block || strings.Contains(userMsg, "/unblock") {
+			words := strings.Split(userMsg, " ")
 			var text string
 			if len(words) != 2 {
 				text = fmt.Sprintf("Please specify the topic")
@@ -115,7 +116,7 @@ func main() {
 				state.lock.Unlock()
 			}
 			msg = tgbotapi.NewMessage(id, text)
-		} else if update.Message.Text == "/blacklist" {
+		} else if userMsg == "/blacklist" {
 			state.lock.RLock()
 			text := fmt.Sprintf("You've blocked these topics %+v", blockedTopics(state.ChatIds[id]))
 			state.lock.RUnlock()
@@ -169,7 +170,7 @@ func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, state *State) {
 			state.lock.RLock()
 		USERS:
 			for id, blacklist := range state.ChatIds {
-				if blacklist[proposal.Topic] {
+				if blacklist[strings.ToLower(proposal.Topic)] {
 					continue USERS
 				}
 				msg := tgbotapi.NewMessage(id, text)
