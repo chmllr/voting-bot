@@ -18,10 +18,6 @@ var URL = "https://ic-api.internetcomputer.org/api/v3/proposals?limit=1"
 var statePath = "state.json"
 var checkInterval = 5 * time.Minute
 
-type Response struct {
-	Data []Proposal `json:"data"`
-}
-
 type Proposal struct {
 	Title   string `json:"title"`
 	Topic   string `json:"topic"`
@@ -55,7 +51,6 @@ func main() {
 		log.Panic("Couldn't instantiate the bot API:", err)
 	}
 
-	// bot.Debug = true
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
@@ -135,8 +130,9 @@ func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, state *State) {
 		if err != nil {
 			log.Println("Couldn't read the response body:", err)
 		}
-
-		var jsonResp Response
+		var jsonResp struct {
+			Data []Proposal `json:"data"`
+		}
 		if err := json.Unmarshal(body, &jsonResp); err != nil {
 			fmt.Println("Couldn't parse the response as JSON:", err)
 		} else {
@@ -149,7 +145,7 @@ func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, state *State) {
 			if lastSeenProposal == proposal.Id {
 				continue
 			}
-			log.Println("New proposal dected:", proposal)
+			log.Println("New proposal detected:", proposal)
 			text := fmt.Sprintf("Title: %s (Topic: %s)\n%s\nhttps://dashboard.internetcomputer.org/proposal/%d",
 				proposal.Title, proposal.Topic, proposal.Summary, proposal.Id)
 
@@ -167,7 +163,7 @@ func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, state *State) {
 				msg := tgbotapi.NewMessage(id, text)
 				bot.Send(msg)
 			}
-			log.Println("Successfully updated", len(state.ChatIds), "users")
+			log.Println("Successfully notified", len(state.ChatIds), "users")
 			state.lock.RUnlock()
 		}
 	}
