@@ -134,7 +134,7 @@ func main() {
 
 func getHelpMessage() string {
 	return "Enter /stop to stop the notifications. " +
-		"Use /block or /unblock to block or unblock a topic; " +
+		"Use /block or /unblock to block or unblock proposals with a certain a topic; " +
 		"use /blacklist to display the list of blocked topics."
 }
 
