@@ -56,6 +56,7 @@ func (s *State) restore() {
 	if s.ChatIds == nil {
 		s.ChatIds = map[int64]map[string]bool{}
 	}
+	fmt.Println("Deserialized the state with", len(s.ChatIds), "users, last proposal id:", s.LastSeenProposal)
 }
 
 func main() {
@@ -107,7 +108,10 @@ func main() {
 				state.lock.Lock()
 				topic := strings.Replace(words[1], "#", "", -1)
 				if block {
-					state.ChatIds[id][topic] = true
+					blacklist := state.ChatIds[id]
+					if blacklist != nil {
+						blacklist[topic] = true
+					}
 				} else {
 					delete(state.ChatIds[id], topic)
 				}
