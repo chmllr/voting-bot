@@ -85,7 +85,7 @@ func (s *State) removeChatId(id int64) {
 
 func (s *State) addChatId(id int64) {
 	s.lock.Lock()
-	s.ChatIds[id] = map[string]bool{}
+	s.ChatIds[id] = map[string]bool{"topic_exchange_rate": true}
 	s.lock.Unlock()
 	log.Println("Added user", id, "to subscribers")
 }
