@@ -178,6 +178,7 @@ func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, state *State) {
 			state.lock.Unlock()
 
 			state.lock.RLock()
+			msgs := 0
 		USERS:
 			for id, blacklist := range state.ChatIds {
 				if blacklist[strings.ToLower(proposal.Topic)] {
@@ -187,8 +188,9 @@ func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, state *State) {
 				msg.ParseMode = tgbotapi.ModeMarkdown
 				msg.DisableWebPagePreview = true
 				bot.Send(msg)
+				msgs += 1
 			}
-			log.Println("Successfully notified", len(state.ChatIds), "users")
+			log.Println("Successfully notified", msgs, "users")
 			state.lock.RUnlock()
 		}
 	}
