@@ -247,6 +247,8 @@ func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, state *State) {
 			msg.DisableWebPagePreview = true
 			bot.Send(msg)
 		}
-		log.Println("Successfully notified", len(ids), "users")
+		if len(ids) > 0 {
+			log.Println("Successfully notified", len(ids), "users")
+		}
 	}
 }
