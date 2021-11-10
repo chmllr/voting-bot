@@ -18,7 +18,7 @@ var (
 	URL                        = "https://ic-api.internetcomputer.org/api/v3/proposals?limit=1"
 	STATE_PATH                 = "state.json"
 	NNS_POLL_INTERVALL         = 5 * time.Minute
-	STATE_PERSISTENCE_INTERVAL = time.Minute
+	STATE_PERSISTENCE_INTERVAL = 5 * time.Minute
 	MAX_TOPIC_LENGTH           = 30
 	MAX_BLOCKED_TOPICS         = 30
 )
