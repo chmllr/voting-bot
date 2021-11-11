@@ -127,7 +127,7 @@ func (s *State) blockedTopics(id int64) string {
 	defer s.lock.RUnlock()
 	m := s.ChatIds[id]
 	if m == nil || len(m) == 0 {
-		return "You did not block any topics."
+		return "Your list of blocked topics is empty."
 	}
 	var res []string
 	for topic, enabled := range m {
