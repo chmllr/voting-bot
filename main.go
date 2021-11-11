@@ -237,13 +237,13 @@ func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, state *State) {
 		if len(summary) > 0 {
 			summary = "\n" + summary + "\n"
 		}
-		text := fmt.Sprintf("*%s*\n%s\n#%s\n\nhttps://dashboard.internetcomputer.org/proposal/%d",
-			proposal.Title, summary, tgbotapi.EscapeText(tgbotapi.ModeMarkdown, proposal.Topic), proposal.Id)
+		text := fmt.Sprintf("<b>%s</b>\n%s\n#%s\n\nhttps://dashboard.internetcomputer.org/proposal/%d",
+			proposal.Title, summary, proposal.Topic, proposal.Id)
 
 		ids := state.chatIds(strings.ToLower(proposal.Topic))
 		for _, id := range ids {
 			msg := tgbotapi.NewMessage(id, text)
-			msg.ParseMode = tgbotapi.ModeMarkdown
+			msg.ParseMode = tgbotapi.ModeHTML
 			msg.DisableWebPagePreview = true
 			bot.Send(msg)
 		}
