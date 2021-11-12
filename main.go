@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -15,7 +16,7 @@ import (
 )
 
 var (
-	URL                        = "https://ic-api.internetcomputer.org/api/v3/proposals?limit=1"
+	URL                        = "https://ic-api.internetcomputer.org/api/v3/proposals?limit=100"
 	STATE_PATH                 = "state.json"
 	NNS_POLL_INTERVALL         = 5 * time.Minute
 	STATE_PERSISTENCE_INTERVAL = 5 * time.Minute
@@ -69,7 +70,7 @@ func (s *State) restore() {
 
 func (s *State) setNewLastSeenId(id int64) (updated bool) {
 	s.lock.Lock()
-	if s.LastSeenProposal != id {
+	if s.LastSeenProposal < id {
 		s.LastSeenProposal = id
 		updated = true
 	}
@@ -229,33 +230,37 @@ func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, state *State) {
 			continue
 		}
 
-		proposal := jsonResp.Data[0]
-		if !state.setNewLastSeenId(proposal.Id) {
-			continue
-		}
-		log.Println("New proposal detected:", proposal)
-		summary := proposal.Summary
-		if len(summary) > 0 {
-			summary = "\n" + summary + "\n"
-		}
-		if len(summary) > MAX_SUMMARY_LENGTH {
-			summary = "[Proposal summary is too long.]"
-		}
-		text := fmt.Sprintf("<b>%s</b>\n%s\n#%s\n\nhttps://dashboard.internetcomputer.org/proposal/%d",
-			proposal.Title, summary, proposal.Topic, proposal.Id)
+		proposals := jsonResp.Data
+		sort.Slice(proposals, func(i, j int) bool { return proposals[i].Id < proposals[j].Id })
 
-		ids := state.chatIds(strings.ToLower(proposal.Topic))
-		for _, id := range ids {
-			msg := tgbotapi.NewMessage(id, text)
-			msg.ParseMode = tgbotapi.ModeHTML
-			msg.DisableWebPagePreview = true
-			_, err := bot.Send(msg)
-			if err != nil {
-				log.Println("Couldn't send message:", err)
+		for _, proposal := range jsonResp.Data {
+			if !state.setNewLastSeenId(proposal.Id) {
+				continue
 			}
-		}
-		if len(ids) > 0 {
-			log.Println("Successfully notified", len(ids), "users")
+			log.Println("New proposal detected:", proposal)
+			summary := proposal.Summary
+			if len(summary) > 0 {
+				summary = "\n" + summary + "\n"
+			}
+			if len(summary) > MAX_SUMMARY_LENGTH {
+				summary = "[Proposal summary is too long.]"
+			}
+			text := fmt.Sprintf("<b>%s</b>\n%s\n#%s\n\nhttps://dashboard.internetcomputer.org/proposal/%d",
+				proposal.Title, summary, proposal.Topic, proposal.Id)
+
+			ids := state.chatIds(strings.ToLower(proposal.Topic))
+			for _, id := range ids {
+				msg := tgbotapi.NewMessage(id, text)
+				msg.ParseMode = tgbotapi.ModeHTML
+				msg.DisableWebPagePreview = true
+				_, err := bot.Send(msg)
+				if err != nil {
+					log.Println("Couldn't send message:", err)
+				}
+			}
+			if len(ids) > 0 {
+				log.Println("Successfully notified", len(ids), "users")
+			}
 		}
 	}
 }
