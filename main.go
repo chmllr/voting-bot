@@ -21,6 +21,7 @@ var (
 	STATE_PERSISTENCE_INTERVAL = 5 * time.Minute
 	MAX_TOPIC_LENGTH           = 30
 	MAX_BLOCKED_TOPICS         = 30
+	MAX_SUMMARY_LENGTH         = 2048
 )
 
 type Proposal struct {
@@ -135,7 +136,7 @@ func (s *State) blockedTopics(id int64) string {
 			res = append(res, topic)
 		}
 	}
-	return fmt.Sprintf("You've blocked these topics: %s", strings.Join(res, ", "))
+	return fmt.Sprintf("You've blocked these topics: %s.", strings.Join(res, ", "))
 }
 
 func main() {
@@ -237,6 +238,9 @@ func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, state *State) {
 		if len(summary) > 0 {
 			summary = "\n" + summary + "\n"
 		}
+		if len(summary) > MAX_SUMMARY_LENGTH {
+			summary = "[Proposal summary is too long.]"
+		}
 		text := fmt.Sprintf("<b>%s</b>\n%s\n#%s\n\nhttps://dashboard.internetcomputer.org/proposal/%d",
 			proposal.Title, summary, proposal.Topic, proposal.Id)
 
@@ -245,7 +249,10 @@ func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, state *State) {
 			msg := tgbotapi.NewMessage(id, text)
 			msg.ParseMode = tgbotapi.ModeHTML
 			msg.DisableWebPagePreview = true
-			bot.Send(msg)
+			_, err := bot.Send(msg)
+			if err != nil {
+				log.Println("Couldn't send message:", err)
+			}
 		}
 		if len(ids) > 0 {
 			log.Println("Successfully notified", len(ids), "users")
