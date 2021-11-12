@@ -256,6 +256,9 @@ func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, state *State) {
 				_, err := bot.Send(msg)
 				if err != nil {
 					log.Println("Couldn't send message:", err)
+					if strings.Contains(err.Error(), "bot was blocked by the user") {
+						state.removeChatId(id)
+					}
 				}
 			}
 			if len(ids) > 0 {
