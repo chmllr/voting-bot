@@ -239,11 +239,11 @@ func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, state *State) {
 			}
 			log.Println("New proposal detected:", proposal)
 			summary := proposal.Summary
+			if len(summary)+2 > MAX_SUMMARY_LENGTH {
+				summary = "[Proposal summary is too long.]"
+			}
 			if len(summary) > 0 {
 				summary = "\n" + summary + "\n"
-			}
-			if len(summary) > MAX_SUMMARY_LENGTH {
-				summary = "[Proposal summary is too long.]"
 			}
 			text := fmt.Sprintf("<b>%s</b>\n%s\n#%s\n\nhttps://dashboard.internetcomputer.org/proposal/%d",
 				proposal.Title, summary, proposal.Topic, proposal.Id)
