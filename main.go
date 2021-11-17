@@ -26,11 +26,12 @@ var (
 )
 
 type Proposal struct {
-	Title   string `json:"title"`
-	Topic   string `json:"topic"`
-	Id      int64  `json:"proposal_id"`
-	Summary string `json:"summary"`
-	Action  string `json:"action"`
+	Title    string  `json:"title"`
+	Topic    string  `json:"topic"`
+	Id       int64   `json:"proposal_id"`
+	Summary  string  `json:"summary"`
+	Action   string  `json:"action"`
+	Proposer float32 `json:"proposer"`
 }
 
 type State struct {
@@ -245,8 +246,8 @@ func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, state *State) {
 			if len(summary) > 0 {
 				summary = "\n" + summary + "\n"
 			}
-			text := fmt.Sprintf("<b>%s</b>\n%s\n#%s\n\nhttps://dashboard.internetcomputer.org/proposal/%d",
-				proposal.Title, summary, proposal.Topic, proposal.Id)
+			text := fmt.Sprintf("<b>%s</b>\n\nProposer: %0.f\n%s\n#%s\n\nhttps://dashboard.internetcomputer.org/proposal/%d",
+				proposal.Title, proposal.Proposer, summary, proposal.Topic, proposal.Id)
 
 			ids := state.chatIds(strings.ToLower(proposal.Topic))
 			for _, id := range ids {
