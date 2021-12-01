@@ -49,10 +49,15 @@ func (s *State) persist() {
 		log.Println("Couldn't serialize state:", err)
 		return
 	}
-	err = os.WriteFile(STATE_PATH, data, 0644)
+	tmpFile, err := ioutil.TempFile(".", STATE_PATH+"_tmp_")
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = os.WriteFile(tmpFile.Name(), data, 0644)
 	if err != nil {
 		log.Println("Couldn't write to state file", STATE_PATH, " :", err)
 	}
+	os.Rename(tmpFile.Name(), STATE_PATH)
 	log.Println(len(data), "bytes persisted to", STATE_PATH)
 }
 
