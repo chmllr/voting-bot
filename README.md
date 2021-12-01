@@ -7,6 +7,9 @@ Supports filtering on the proposal topic.
 ## Compilation & Execution
 
 Compile the bot using `go build`; this will create an executable `nns-proposals-bot`.
+Run the bot with the authentication token provided in the `TOKEN` environment variable:
+
+    TOKEN=<...> ./nns-proposals-bot
 
 ## Proposer Whitelisting
 
