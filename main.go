@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"os"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -32,7 +31,7 @@ type Proposal struct {
 	Id       int64   `json:"proposal_id"`
 	Summary  string  `json:"summary"`
 	Action   string  `json:"action"`
-	Proposer float64 `json:"proposer"`
+	Proposer float32 `json:"proposer"`
 }
 
 type State struct {
@@ -153,18 +152,6 @@ func main() {
 		log.Panic("Couldn't instantiate the bot API:", err)
 	}
 
-	var proposer_whitelist []int64
-	content, err := ioutil.ReadFile("proposer_whitelist.txt")
-	if err == nil {
-		for _, val := range strings.Split(string(content), "\n") {
-			id, err := strconv.ParseInt(val, 10, 64)
-			if err == nil {
-				proposer_whitelist = append(proposer_whitelist, id)
-			}
-		}
-	}
-	log.Println("Whitelist for proposers:", proposer_whitelist)
-
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
@@ -172,7 +159,7 @@ func main() {
 	var state State
 	state.restore()
 
-	go fetchProposalsAndNotify(bot, &state, proposer_whitelist)
+	go fetchProposalsAndNotify(bot, &state)
 	go persist(&state)
 
 	updates := bot.GetUpdatesChan(u)
@@ -230,7 +217,7 @@ func persist(state *State) {
 	}
 }
 
-func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, state *State, proposer_whitelist []int64) {
+func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, state *State) {
 	ticker := time.NewTicker(NNS_POLL_INTERVALL)
 	for range ticker.C {
 		resp, err := http.Get(URL)
@@ -252,18 +239,11 @@ func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, state *State, proposer_whitel
 		proposals := jsonResp.Data
 		sort.Slice(proposals, func(i, j int) bool { return proposals[i].Id < proposals[j].Id })
 
-	PROPOSALS:
 		for _, proposal := range jsonResp.Data {
-			for _, proposer := range proposer_whitelist {
-				if proposer == int64(proposal.Proposer) {
-					fmt.Println("Skipping notification for proposal", proposal.Id, "because proposer", proposal.Proposer, "is white-listed")
-					continue PROPOSALS
-				}
-			}
 			if !state.setNewLastSeenId(proposal.Id) {
 				continue
 			}
-			log.Printf("New proposal detected: %+v\n", proposal)
+			log.Println("New proposal detected:", proposal)
 			summary := proposal.Summary
 			if len(summary)+2 > MAX_SUMMARY_LENGTH {
 				summary = "[Proposal summary is too long.]"
