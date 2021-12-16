@@ -11,11 +11,6 @@ Run the bot with the authentication token provided in the `TOKEN` environment va
 
     TOKEN=<...> ./nns-proposals-bot
 
-## Proposer Whitelisting
-
-In case certain proposers should be ignored, save the proposer ids into the file `proposer_whitelist.txt`, one per line.
-The bot will use this file automatically if it can be found inside the same directory as the executable.
-
 ## Interaction with the bot
 
 Enter `/start` to subscribe to the notifications; use `/stop` to cancel the subscription.
