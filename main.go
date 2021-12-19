@@ -23,6 +23,8 @@ var (
 	MAX_TOPIC_LENGTH           = 50
 	MAX_BLOCKED_TOPICS         = 30
 	MAX_SUMMARY_LENGTH         = 2048
+	TOPIC_GOVERNANCE           = "topic_governance"
+	ALL_EXCEPT_GOVERNANCE      = "all_except_governance"
 )
 
 type Proposal struct {
@@ -40,6 +42,9 @@ type State struct {
 	lock             sync.RWMutex
 }
 
+// Locks the state, persists it to a temporary file, then moves the temporary
+// file to the location of the persisted state. This should avoid broken state
+// if the process gets killed in the middle of writing.
 func (s *State) persist() {
 	s.lock.RLock()
 	data, err := json.Marshal(s)
@@ -119,12 +124,16 @@ func (s *State) unblockTopic(id int64, topic string) {
 	s.lock.Unlock()
 }
 
-func (s *State) chatIds(topic string) (res []int64) {
+func (s *State) chatIdsForTopic(topic string) (res []int64) {
 	s.lock.RLock()
 	for id, blacklist := range s.ChatIds {
-		if blacklist != nil && !blacklist[topic] {
-			res = append(res, id)
+		if blacklist == nil || blacklist[topic] {
+			continue
 		}
+		if blacklist[ALL_EXCEPT_GOVERNANCE] && topic != TOPIC_GOVERNANCE {
+			continue
+		}
+		res = append(res, id)
 	}
 	s.lock.RUnlock()
 	return
@@ -195,6 +204,9 @@ func main() {
 				}
 				msg = state.blockedTopics(id)
 			}
+		case "/governance_only":
+			state.blockTopic(id, ALL_EXCEPT_GOVERNANCE)
+			msg = "From now on, you'll only see the governance proposals."
 		case "/blacklist":
 			msg = state.blockedTopics(id)
 		default:
@@ -205,9 +217,10 @@ func main() {
 }
 
 func getHelpMessage() string {
-	return "Enter /stop to stop the notifications. " +
+	return "Enter /start to subscribe. Enter /stop to unsubscribe. " +
 		"Use /block or /unblock to block or unblock proposals with a certain a topic; " +
-		"use /blacklist to display the list of blocked topics."
+		"use /blacklist to display the list of blocked topics. " +
+		"Use /governance_only command to only receive governance proposals."
 }
 
 func persist(state *State) {
@@ -254,7 +267,7 @@ func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, state *State) {
 			text := fmt.Sprintf("<b>%s</b>\n\nProposer: %s\n%s\n#%s\n\nhttps://dashboard.internetcomputer.org/proposal/%d",
 				proposal.Title, proposal.Proposer, summary, proposal.Topic, proposal.Id)
 
-			ids := state.chatIds(strings.ToLower(proposal.Topic))
+			ids := state.chatIdsForTopic(strings.ToLower(proposal.Topic))
 			for _, id := range ids {
 				msg := tgbotapi.NewMessage(id, text)
 				msg.ParseMode = tgbotapi.ModeHTML

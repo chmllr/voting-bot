@@ -13,5 +13,7 @@ Run the bot with the authentication token provided in the `TOKEN` environment va
 
 ## Interaction with the bot
 
-Enter `/start` to subscribe to the notifications; use `/stop` to cancel the subscription.
-Use `/block` or `/unblock` to block or unblock proposals with a certain topic; use `/blacklist` to display the list of blocked topics.
+Enter `/start` to subscribe to the notifications and use `/stop` to cancel the subscription.
+Use `/block` or `/unblock` to block or unblock proposals with a certain topic.
+Use `/blacklist` to display the list of blocked topics.
+Use `/governance_only` to block all topics except governance.
