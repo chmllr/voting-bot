@@ -65,6 +65,7 @@ func (s *State) persist() {
 	log.Println(len(data), "bytes persisted to", STATE_PATH)
 }
 
+// Deserialize the persisted state from the disk. Currently, prints an error on a first run.
 func (s *State) restore() {
 	data, err := os.ReadFile(STATE_PATH)
 	if err != nil {
@@ -79,6 +80,7 @@ func (s *State) restore() {
 	fmt.Println("Deserialized the state with", len(s.ChatIds), "users, last proposal id:", s.LastSeenProposal)
 }
 
+// This is an atomic compare and swap for a new seen proposal id.
 func (s *State) setNewLastSeenId(id int64) (updated bool) {
 	s.lock.Lock()
 	if s.LastSeenProposal < id {
@@ -89,6 +91,7 @@ func (s *State) setNewLastSeenId(id int64) (updated bool) {
 	return
 }
 
+// Unsubscribes the chat id.
 func (s *State) removeChatId(id int64) {
 	s.lock.Lock()
 	delete(s.ChatIds, id)
@@ -96,6 +99,7 @@ func (s *State) removeChatId(id int64) {
 	log.Println("Removed user", id, "from subscribers")
 }
 
+// Subscribes the chat id.
 func (s *State) addChatId(id int64) {
 	s.lock.Lock()
 	s.ChatIds[id] = map[string]bool{"topic_exchange_rate": true}
@@ -103,6 +107,8 @@ func (s *State) addChatId(id int64) {
 	log.Println("Added user", id, "to subscribers")
 }
 
+// Block `topic` for chat `id`. Checks max topic length and max blocked topics to avoid
+// trivial bloat attacks.
 func (s *State) blockTopic(id int64, topic string) {
 	if len(topic) > MAX_TOPIC_LENGTH {
 		return
@@ -115,6 +121,7 @@ func (s *State) blockTopic(id int64, topic string) {
 	s.lock.Unlock()
 }
 
+// Unblocks `topic` for chat `id`.
 func (s *State) unblockTopic(id int64, topic string) {
 	s.lock.Lock()
 	blacklist := s.ChatIds[id]
@@ -124,12 +131,15 @@ func (s *State) unblockTopic(id int64, topic string) {
 	s.lock.Unlock()
 }
 
+// Returns the list of chat ids which should be notified about `topic`.
 func (s *State) chatIdsForTopic(topic string) (res []int64) {
 	s.lock.RLock()
 	for id, blacklist := range s.ChatIds {
+		// Skip if no blacklist or topic is blacklisted.
 		if blacklist == nil || blacklist[topic] {
 			continue
 		}
+		// Skip if only governance topic is whitelisted and the topic is not governance.
 		if blacklist[ALL_EXCEPT_GOVERNANCE] && topic != TOPIC_GOVERNANCE {
 			continue
 		}
@@ -139,6 +149,7 @@ func (s *State) chatIdsForTopic(topic string) (res []int64) {
 	return
 }
 
+// Returns a string of blocked topics.
 func (s *State) blockedTopics(id int64) string {
 	s.lock.RLock()
 	defer s.lock.RUnlock()
@@ -184,26 +195,25 @@ func main() {
 		}
 		cmd := words[0]
 		switch cmd {
-		case "/start", "/stop":
-			if cmd == "/start" {
-				state.addChatId(id)
-				msg = "Subscribed." + "\n\n" + getHelpMessage()
-			} else {
-				state.removeChatId(id)
-				msg = "Unsubscribed."
-			}
+		case "/start":
+			state.addChatId(id)
+			msg = "Subscribed." + "\n\n" + getHelpMessage()
+		case "/stop":
+			state.removeChatId(id)
+			msg = "Unsubscribed."
 		case "/block", "/unblock":
 			if len(words) != 2 {
 				msg = fmt.Sprintf("Please specify the topic")
-			} else {
-				topic := strings.Replace(words[1], "#", "", -1)
-				if cmd == "/block" {
-					state.blockTopic(id, topic)
-				} else {
-					state.unblockTopic(id, topic)
-				}
-				msg = state.blockedTopics(id)
+				break
 			}
+			topic := strings.Replace(words[1], "#", "", -1)
+			switch cmd {
+			case "/block":
+				state.blockTopic(id, topic)
+			default:
+				state.unblockTopic(id, topic)
+			}
+			msg = state.blockedTopics(id)
 		case "/governance_only":
 			state.blockTopic(id, ALL_EXCEPT_GOVERNANCE)
 			msg = "From now on, you'll only see the governance proposals."
@@ -217,7 +227,7 @@ func main() {
 }
 
 func getHelpMessage() string {
-	return "Enter /start to subscribe. Enter /stop to unsubscribe. " +
+	return "Enter /stop to unsubscribe (/start to resubscribe). " +
 		"Use /block or /unblock to block or unblock proposals with a certain a topic; " +
 		"use /blacklist to display the list of blocked topics. " +
 		"Use /governance_only command to only receive governance proposals."
