@@ -21,7 +21,7 @@ var (
 	URL                = "https://ic-api.internetcomputer.org/api/v3/proposals?limit=100"
 	NNS_POLL_INTERVALL = 5 * time.Minute
 	MAX_SUMMARY_LENGTH = 2048
-	TOPIC_GOVERNANCE   = "topic_governance"
+	TOPIC_GOVERNANCE   = "TOPIC_GOVERNANCE"
 	LAST_SEEN_PROPOSAL = int64(0)
 )
 
@@ -47,9 +47,9 @@ func main() {
 		id, err := strconv.ParseInt(string(proposalIdStr), 10, 64)
 		if err == nil {
 			LAST_SEEN_PROPOSAL = id
-			log.Println("Last seens proposal is", id)
 		}
 	}
+	log.Println("Last seens proposal is", LAST_SEEN_PROPOSAL)
 	data, err := os.ReadFile("settings.json")
 	if err != nil {
 		log.Println("Couldn't read settings file:", err)
@@ -124,7 +124,7 @@ func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, id int64) {
 		sort.Slice(proposals, func(i, j int) bool { return proposals[i].Id < proposals[j].Id })
 
 		for _, proposal := range jsonResp.Data {
-			if proposal.Id == LAST_SEEN_PROPOSAL || proposal.Topic != TOPIC_GOVERNANCE {
+			if proposal.Id < LAST_SEEN_PROPOSAL || proposal.Topic != TOPIC_GOVERNANCE {
 				continue
 			}
 			LAST_SEEN_PROPOSAL = proposal.Id
