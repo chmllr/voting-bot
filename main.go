@@ -78,9 +78,9 @@ func main() {
 			continue
 		}
 		vote := "0"
-		if update.Message.Text == "/YES" {
+		if update.Message.Text == "/ADOPT" {
 			vote = "1"
-		} else if update.Message.Text == "/NO" {
+		} else if update.Message.Text == "/REJECT" {
 		} else {
 			bot.Send(tgbotapi.NewMessage(id, "I'm up and running! 🚀"))
 			continue
@@ -139,7 +139,7 @@ func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, id int64) {
 			}
 			text := fmt.Sprintf("<b>%s</b>\n\nProposer: %s\n%s\n#%s\n\nhttps://dashboard.internetcomputer.org/proposal/%d",
 				proposal.Title, proposal.Proposer, summary, proposal.Topic, proposal.Id)
-			text = text + "\n\n/YES         /NO"
+			text = text + "\n\n/REJECT  ↔️  /ADOPT"
 
 			msg := tgbotapi.NewMessage(id, text)
 			msg.ParseMode = tgbotapi.ModeHTML
