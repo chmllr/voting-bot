@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	URL                = "https://ic-api.internetcomputer.org/api/v3/proposals?limit=1"
+	URL                = "https://ic-api.internetcomputer.org/api/v3/proposals?limit=100"
 	NNS_POLL_INTERVALL = 5 * time.Minute
 	MAX_SUMMARY_LENGTH = 2048
 	TOPIC_GOVERNANCE   = "topic_governance"
@@ -42,6 +42,14 @@ type Proposal struct {
 }
 
 func main() {
+	proposalIdStr, err := ioutil.ReadFile("proposal_id.txt")
+	if err == nil {
+		id, err := strconv.ParseInt(string(proposalIdStr), 10, 64)
+		if err == nil {
+			LAST_SEEN_PROPOSAL = id
+			log.Println("Last seens proposal is", id)
+		}
+	}
 	data, err := os.ReadFile("settings.json")
 	if err != nil {
 		log.Println("Couldn't read settings file:", err)
@@ -120,6 +128,7 @@ func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, id int64) {
 				continue
 			}
 			LAST_SEEN_PROPOSAL = proposal.Id
+			ioutil.WriteFile("proposal_id.txt", []byte(strconv.FormatInt(LAST_SEEN_PROPOSAL, 10)), 0)
 			log.Println("New governance proposal detected:", proposal)
 			summary := proposal.Summary
 			if len(summary)+2 > MAX_SUMMARY_LENGTH {
