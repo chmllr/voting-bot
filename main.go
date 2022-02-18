@@ -72,6 +72,10 @@ func main() {
 		vote := "0"
 		if update.Message.Text == "/YES" {
 			vote = "1"
+		} else if update.Message.Text == "/NO" {
+		} else {
+			bot.Send(tgbotapi.NewMessage(id, "I'm up and running! 🚀"))
+			continue
 		}
 		cmd := exec.Command("sh", "./send.sh", s.PemFile, strconv.FormatInt(s.NeuronId, 10), strconv.FormatInt(LAST_SEEN_PROPOSAL, 10), vote)
 		var out bytes.Buffer
