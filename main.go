@@ -116,7 +116,7 @@ func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, id int64) {
 		sort.Slice(proposals, func(i, j int) bool { return proposals[i].Id < proposals[j].Id })
 
 		for _, proposal := range jsonResp.Data {
-			if proposal.Id == LAST_SEEN_PROPOSAL { // || proposal.Topic != TOPIC_GOVERNANCE {
+			if proposal.Id == LAST_SEEN_PROPOSAL || proposal.Topic != TOPIC_GOVERNANCE {
 				continue
 			}
 			LAST_SEEN_PROPOSAL = proposal.Id
