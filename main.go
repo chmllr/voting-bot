@@ -128,7 +128,7 @@ func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, id int64) {
 				continue
 			}
 			LAST_SEEN_PROPOSAL = proposal.Id
-			ioutil.WriteFile("proposal_id.txt", []byte(strconv.FormatInt(LAST_SEEN_PROPOSAL, 10)), 0)
+			ioutil.WriteFile("proposal_id.txt", []byte(strconv.FormatInt(LAST_SEEN_PROPOSAL, 10)), 0644)
 			log.Println("New governance proposal detected:", proposal)
 			summary := proposal.Summary
 			if len(summary)+2 > MAX_SUMMARY_LENGTH {
