@@ -49,7 +49,7 @@ func main() {
 			LAST_SEEN_PROPOSAL = id
 		}
 	}
-	log.Println("Last seens proposal is", LAST_SEEN_PROPOSAL)
+	log.Println("Last seen proposal is", LAST_SEEN_PROPOSAL)
 	data, err := os.ReadFile("settings.json")
 	if err != nil {
 		log.Println("Couldn't read settings file:", err)
