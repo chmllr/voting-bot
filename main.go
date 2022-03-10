@@ -77,15 +77,20 @@ func main() {
 		if update.Message == nil || id != s.ChatId {
 			continue
 		}
+		parts := strings.Split(update.Message.Text, " ")
+		proposalId := strconv.FormatInt(LAST_SEEN_PROPOSAL, 10)
+		if len(parts) == 2 {
+			proposalId = parts[1]
+		}
 		vote := "0"
-		if update.Message.Text == "/ADOPT" {
+		if parts[0] == "/ADOPT" {
 			vote = "1"
-		} else if update.Message.Text == "/REJECT" {
+		} else if parts[0] == "/REJECT" {
 		} else {
 			bot.Send(tgbotapi.NewMessage(id, "I'm up and running! 🚀"))
 			continue
 		}
-		cmd := exec.Command("sh", "./send.sh", s.PemFile, strconv.FormatInt(s.NeuronId, 10), strconv.FormatInt(LAST_SEEN_PROPOSAL, 10), vote)
+		cmd := exec.Command("sh", "./send.sh", s.PemFile, strconv.FormatInt(s.NeuronId, 10), proposalId, vote)
 		var out bytes.Buffer
 		var stderr bytes.Buffer
 		cmd.Stdout = &out
@@ -96,7 +101,7 @@ func main() {
 		if err != nil {
 			log.Println(fmt.Sprint(err) + ": " + stderr.String())
 		}
-		parts := strings.Split(out.String(), "The request is being processed...")
+		parts = strings.Split(out.String(), "The request is being processed...")
 		bot.Send(tgbotapi.NewMessage(id, parts[len(parts)-1]))
 	}
 }
