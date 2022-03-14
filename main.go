@@ -82,7 +82,7 @@ func main() {
 		if len(parts) == 2 {
 			proposalId = parts[1]
 		}
-		vote := "0"
+		vote := "2"
 		if parts[0] == "/ADOPT" {
 			vote = "1"
 		} else if parts[0] == "/REJECT" {
