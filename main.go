@@ -77,7 +77,7 @@ func main() {
 		if update.Message == nil || id != s.ChatId {
 			continue
 		}
-		parts := strings.Split(update.Message.Text, " ")
+		parts := strings.Split(update.Message.Text, "_")
 		proposalId := strconv.FormatInt(LAST_SEEN_PROPOSAL, 10)
 		if len(parts) == 2 {
 			proposalId = parts[1]
@@ -142,9 +142,8 @@ func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, id int64) {
 			if len(summary) > 0 {
 				summary = "\n" + summary + "\n"
 			}
-			text := fmt.Sprintf("<b>%s</b>\n\nProposer: %s\n%s\n#%s\n\nhttps://dashboard.internetcomputer.org/proposal/%d",
-				proposal.Title, proposal.Proposer, summary, proposal.Topic, proposal.Id)
-			text = text + "\n\n/REJECT  ↔️  /ADOPT"
+			text := fmt.Sprintf("<b>%s</b>\n\nProposer: %s\n%s\n#%s\n\nhttps://dashboard.internetcomputer.org/proposal/%d\n\n/REJECT_%d  ↔️  /ADOPT_%d",
+				proposal.Title, proposal.Proposer, summary, proposal.Topic, proposal.Id, proposal.Id, proposal.Id)
 
 			msg := tgbotapi.NewMessage(id, text)
 			msg.ParseMode = tgbotapi.ModeHTML
