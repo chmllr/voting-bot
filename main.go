@@ -37,7 +37,6 @@ type Proposal struct {
 	Topic    string `json:"topic"`
 	Id       int64  `json:"proposal_id"`
 	Summary  string `json:"summary"`
-	Action   string `json:"action"`
 	Proposer string `json:"proposer"`
 }
 
