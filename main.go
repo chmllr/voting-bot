@@ -18,32 +18,35 @@ import (
 )
 
 var (
-	URL                = "https://ic-api.internetcomputer.org/api/v3/proposals?limit=100"
+	URL                = "https://cb3bp-ciaaa-aaaai-qkw4q-cai.raw.ic0.app"
 	NNS_POLL_INTERVALL = 5 * time.Minute
 	MAX_SUMMARY_LENGTH = 2048
-	TOPIC_GOVERNANCE   = "TOPIC_GOVERNANCE"
-	LAST_SEEN_PROPOSAL = int64(0)
+	TOPIC_GOVERNANCE   = "Governance"
+	LAST_SEEN_PROPOSAL = uint64(0)
+	VOTE_YES           = "1"
+	VOTE_NO            = "2"
 )
 
 type Settings struct {
 	Token    string `json:"token"`
 	ChatId   int64  `json:"chatId"`
-	NeuronId int64  `json:"neuronId"`
+	NeuronId uint64 `json:"neuronId"`
 	PemFile  string `json:"pemFile"`
 }
 
 type Proposal struct {
 	Title    string `json:"title"`
 	Topic    string `json:"topic"`
-	Id       int64  `json:"proposal_id"`
+	Id       uint64 `json:"id"`
 	Summary  string `json:"summary"`
-	Proposer string `json:"proposer"`
+	Proposer uint64 `json:"proposer"`
+	Spam     bool   `json:"spam"`
 }
 
 func main() {
 	proposalIdStr, err := ioutil.ReadFile("proposal_id.txt")
 	if err == nil {
-		id, err := strconv.ParseInt(string(proposalIdStr), 10, 64)
+		id, err := strconv.ParseUint(string(proposalIdStr), 10, 64)
 		if err == nil {
 			LAST_SEEN_PROPOSAL = id
 		}
@@ -67,45 +70,55 @@ func main() {
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
 
-	go fetchProposalsAndNotify(bot, s.ChatId)
+	go fetchProposalsAndNotify(bot, &s)
 
 	updates := bot.GetUpdatesChan(u)
 	for update := range updates {
-		id := update.Message.Chat.ID
-		log.Printf("Got message: id=%d, message=%s", id, update.Message.Text)
-		if update.Message == nil || id != s.ChatId {
+		chatId := update.Message.Chat.ID
+		log.Printf("Got message: id=%d, message=%s", chatId, update.Message.Text)
+		if update.Message == nil || chatId != s.ChatId {
 			continue
 		}
 		parts := strings.Split(update.Message.Text, "_")
-		proposalId := strconv.FormatInt(LAST_SEEN_PROPOSAL, 10)
+		proposalId := LAST_SEEN_PROPOSAL
+		var err error
 		if len(parts) == 2 {
-			proposalId = parts[1]
+			proposalId, err = strconv.ParseUint(parts[1], 10, 64)
+			if err != nil {
+				log.Println("Couldn't parse the proposal id")
+				continue
+			}
 		}
-		vote := "2"
-		if parts[0] == "/ADOPT" {
-			vote = "1"
-		} else if parts[0] == "/REJECT" {
-		} else {
-			bot.Send(tgbotapi.NewMessage(id, "I'm up and running! 🚀"))
+		vote := VOTE_NO
+		switch parts[0] {
+		case "/ADOPT":
+			vote = VOTE_YES
+		case "/REJECT":
+		default:
+			bot.Send(tgbotapi.NewMessage(chatId, "I'm up and running! 🚀"))
 			continue
 		}
-		cmd := exec.Command("sh", "./send.sh", s.PemFile, strconv.FormatInt(s.NeuronId, 10), proposalId, vote)
-		var out bytes.Buffer
-		var stderr bytes.Buffer
-		cmd.Stdout = &out
-		cmd.Stderr = &stderr
-		log.Println("Sending command...")
-		err := cmd.Run()
-		log.Println("Done.")
-		if err != nil {
-			log.Println(fmt.Sprint(err) + ": " + stderr.String())
-		}
-		parts = strings.Split(out.String(), "The request is being processed...")
-		bot.Send(tgbotapi.NewMessage(id, parts[len(parts)-1]))
+		sendVote(bot, &s, proposalId, vote)
 	}
 }
 
-func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, id int64) {
+func sendVote(bot *tgbotapi.BotAPI, s *Settings, proposalId uint64, vote string) {
+	cmd := exec.Command("sh", "./send.sh", s.PemFile, strconv.FormatUint(s.NeuronId, 10), strconv.FormatUint(proposalId, 10), vote)
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	log.Println("Sending command...")
+	err := cmd.Run()
+	log.Println("Done.")
+	if err != nil {
+		log.Println(fmt.Sprint(err) + ": " + stderr.String())
+	}
+	parts := strings.Split(out.String(), "The request is being processed...")
+	bot.Send(tgbotapi.NewMessage(s.ChatId, fmt.Sprintf("VOTE=%s: %s", vote, parts[len(parts)-1])))
+}
+
+func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, s *Settings) {
 	ticker := time.NewTicker(NNS_POLL_INTERVALL)
 	for range ticker.C {
 		resp, err := http.Get(URL)
@@ -116,23 +129,20 @@ func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, id int64) {
 		if err != nil {
 			log.Println("Couldn't read the response body:", err)
 		}
-		var jsonResp struct {
-			Data []Proposal `json:"data"`
-		}
-		if err := json.Unmarshal(body, &jsonResp); err != nil {
+		var proposals []Proposal
+		if err := json.Unmarshal(body, &proposals); err != nil {
 			fmt.Println("Couldn't parse the response as JSON:", err)
 			continue
 		}
 
-		proposals := jsonResp.Data
 		sort.Slice(proposals, func(i, j int) bool { return proposals[i].Id < proposals[j].Id })
 
-		for _, proposal := range jsonResp.Data {
+		for _, proposal := range proposals {
 			if proposal.Id <= LAST_SEEN_PROPOSAL || proposal.Topic != TOPIC_GOVERNANCE {
 				continue
 			}
 			LAST_SEEN_PROPOSAL = proposal.Id
-			ioutil.WriteFile("proposal_id.txt", []byte(strconv.FormatInt(LAST_SEEN_PROPOSAL, 10)), 0644)
+			ioutil.WriteFile("proposal_id.txt", []byte(strconv.FormatUint(LAST_SEEN_PROPOSAL, 10)), 0644)
 			log.Println("New governance proposal detected:", proposal)
 			summary := proposal.Summary
 			if len(summary)+2 > MAX_SUMMARY_LENGTH {
@@ -141,10 +151,15 @@ func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, id int64) {
 			if len(summary) > 0 {
 				summary = "\n" + summary + "\n"
 			}
-			text := fmt.Sprintf("<b>%s</b>\n\nProposer: %s\n%s\n#%s\n\nhttps://dashboard.internetcomputer.org/proposal/%d\n\n/REJECT_%d  ↔️  /ADOPT_%d",
-				proposal.Title, proposal.Proposer, summary, proposal.Topic, proposal.Id, proposal.Id, proposal.Id)
-
-			msg := tgbotapi.NewMessage(id, text)
+			var text string
+			if proposal.Spam {
+				text = fmt.Sprintf("SPAM PROPOSAL DETECTED\n\nhttps://dashboard.internetcomputer.org/proposal/%d", proposal.Id)
+				sendVote(bot, s, proposal.Id, VOTE_NO)
+			} else {
+				text = fmt.Sprintf("<b>%s</b>\n\nProposer: %s\n%s\n#%s\n\nhttps://dashboard.internetcomputer.org/proposal/%d\n\n/REJECT_%d  ↔️  /ADOPT_%d",
+					proposal.Title, proposal.Proposer, summary, proposal.Topic, proposal.Id, proposal.Id, proposal.Id)
+			}
+			msg := tgbotapi.NewMessage(s.ChatId, text)
 			msg.ParseMode = tgbotapi.ModeHTML
 			msg.DisableWebPagePreview = true
 			_, err := bot.Send(msg)
