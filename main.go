@@ -155,7 +155,7 @@ func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, s *Settings) {
 			if proposal.Spam {
 				text = fmt.Sprintf("SPAM PROPOSAL DETECTED\n\nhttps://dashboard.internetcomputer.org/proposal/%d", proposal.Id)
 			} else {
-				text = fmt.Sprintf("<b>%s</b>\n\nProposer: %s\n%s\n#%s\n\nhttps://dashboard.internetcomputer.org/proposal/%d\n\n/REJECT_%d  ↔️  /ADOPT_%d",
+				text = fmt.Sprintf("<b>%s</b>\n\nProposer: %d\n%s\n#%s\n\nhttps://dashboard.internetcomputer.org/proposal/%d\n\n/REJECT_%d  ↔️  /ADOPT_%d",
 					proposal.Title, proposal.Proposer, summary, proposal.Topic, proposal.Id, proposal.Id, proposal.Id)
 			}
 			msg := tgbotapi.NewMessage(s.ChatId, text)
