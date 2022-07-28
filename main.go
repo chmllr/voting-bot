@@ -46,9 +46,11 @@ type Proposal struct {
 func main() {
 	proposalIdStr, err := ioutil.ReadFile("proposal_id.txt")
 	if err == nil {
-		id, err := strconv.ParseUint(string(proposalIdStr), 10, 64)
+		id, err := strconv.ParseUint(strings.TrimSpace(string(proposalIdStr)), 10, 64)
 		if err == nil {
 			LAST_SEEN_PROPOSAL = id
+		} else {
+			log.Fatalln(err)
 		}
 	}
 	log.Println("Last seen proposal is", LAST_SEEN_PROPOSAL)
@@ -131,7 +133,7 @@ func fetchProposalsAndNotify(bot *tgbotapi.BotAPI, s *Settings) {
 		}
 		var proposals []Proposal
 		if err := json.Unmarshal(body, &proposals); err != nil {
-			fmt.Println("Couldn't parse the response as JSON:", err)
+			fmt.Println("Couldn't parse the response as JSON:", err, body)
 			continue
 		}
 
